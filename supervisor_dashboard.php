@@ -22,18 +22,25 @@ $resultDirigentes = $conn->query($queryDirigentes);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Supervisor</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <body>
     <header class="bg-primary text-white text-center p-3">
         <h1>Supervisor Dashboard</h1>
         <a href="logout.php" class="btn btn-light">Cerrar sesión</a>
     </header>
+    <div class="container">
     <div class="table-responsive">
     <div class="container mt-4">
     <a href="register_dirigente.php" class="btn btn-danger mb-3">Nuevos Dirigentes</a>
         <a href="dirigentes_list.php" class="btn btn-primary mb-3">Ver Dirigentes</a>
-
+    </div>
+    <br>
+    <div class="container">
         <h2>Dirigentes Registrados</h2>
         
         <table class="table table-bordered table-hover table-striped">
