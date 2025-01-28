@@ -56,7 +56,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar'])) {
             $error = "Error: " . $conn->error;
         }
     } else {
-        $error = "El DNI ya está registrado.";
+        $error = "El DNI ya está registrado por otro movilizador.";
     }
 }
 

@@ -42,8 +42,8 @@ $resultDirigentes = $conn->query($queryDirigentes);
     <br>
     <div class="container">
         <h2>Dirigentes Registrados</h2>
-        
-        <table class="table table-bordered table-hover table-striped">
+        <div class="table-responsive-sm"> 
+         <table class="table table-bordered table-hover table-striped">
             <thead>
                 <tr>
                     <th>#</th>
@@ -73,7 +73,9 @@ $resultDirigentes = $conn->query($queryDirigentes);
                 }
                 ?>
             </tbody>
-        </table>
+         </table>
+        </div>
+
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
