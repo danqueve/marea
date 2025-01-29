@@ -50,7 +50,9 @@ $resultDirigentes = $conn->query($queryDirigentes);
                     <th>DNI</th>
                     <th>Apellido</th>
                     <th>Nombre</th>
-                    <th>Circuito</th>
+                    <th>Apodo</th>
+                    <th>Celular</th>
+                    <th>Cto</th>
                 </tr>
             </thead>
             <tbody>
@@ -63,6 +65,8 @@ $resultDirigentes = $conn->query($queryDirigentes);
                                 <td>{$row['DNI']}</td>
                                 <td>{$row['Apellido']}</td>
                                 <td>{$row['Nombre']}</td>
+                                <td>{$row['Apodo']}</td>
+                                <td>{$row['Celular']}</td>
                                 <td>{$row['Circuito']}</td>
                                 <td><a href='dirigente_details.php?dni={$row['DNI']}' class='btn btn-info'>Ver Detalles</a></td>
                               </tr>";

@@ -45,21 +45,21 @@ $pdf = new FPDF();
 $pdf->AddPage();
 
 // Título del PDF
-$pdf->SetFont('Arial', 'B', 14);
+$pdf->SetFont('Arial', 'B', 12);
 $pdf->Cell(0, 10, 'Detalles del Dirigente', 0, 1, 'C');
 $pdf->Ln(10);
 
 // Información del Dirigente
-$pdf->SetFont('Arial', '', 11);
+$pdf->SetFont('Arial', '', 10);
 $pdf->Cell(0, 10, "Dirigente: " . $dirigente['Nombre'] . ' ' . $dirigente['Apellido'], 0, 1);
 $pdf->Cell(0, 10, "DNI: " . $dirigente['DNI'], 0, 1);
 $pdf->Cell(0, 10, "Circuito: " . $dirigente['Circuito'], 0, 1);
 $pdf->Ln(10);
 
 // Tabla de Movilizadores
-$pdf->SetFont('Arial', 'B', 11);
+$pdf->SetFont('Arial', 'B', 10);
 $pdf->Cell(0, 10, 'Movilizadores', 0, 1);
-$pdf->SetFont('Arial', '', 11);
+$pdf->SetFont('Arial', '', 10);
 
 $pdf->Cell(30, 10, 'DNI', 1);
 $pdf->Cell(50, 10, 'Apellido', 1);
@@ -88,7 +88,7 @@ if ($resultMovilizadores->num_rows > 0) {
 
 // Mostrar total de votantes
 $pdf->Ln(5);
-$pdf->SetFont('Arial', 'B', 11);
+$pdf->SetFont('Arial', 'B', 10);
 $pdf->Cell(0, 10, "Total de Votantes Registrados: " . $totalVotantes, 0, 1, 'R');
 
 $pdf->Ln(10);
