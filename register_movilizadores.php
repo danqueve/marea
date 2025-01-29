@@ -35,6 +35,7 @@ if (isset($_POST['register'])) {
     $apellidoMovilizador = $_POST['apellido'];
     $circuitoMovilizador = $_POST['circuito'];
     
+    
     // Verificar si el DNI ya está registrado en PADRON
     $queryPadron = "SELECT * FROM PADRON WHERE DNI = '$dniMovilizador'";
     $resultPadron = $conn->query($queryPadron);

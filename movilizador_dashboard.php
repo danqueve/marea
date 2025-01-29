@@ -3,29 +3,61 @@ session_start();
 include('conexion.php');
 
 // Verificar si el usuario actual es un movilizador
-if ($_SESSION['usuario'] != 'movilizador') {
+if (!isset($_SESSION['usuario']) || $_SESSION['usuario'] != 'movilizador') {
     header('Location: movilizador_login.php');
     exit();
 }
 
 $dniMovilizador = $_SESSION['dni'];
 
+// Obtener el nombre del movilizador
+$queryMovilizador = "SELECT Apellido, Nombre FROM Movilizadores WHERE DNI = ?";
+$stmtMovilizador = $conn->prepare($queryMovilizador);
+$stmtMovilizador->bind_param("s", $dniMovilizador);
+$stmtMovilizador->execute();
+$resultMovilizador = $stmtMovilizador->get_result();
+$movilizadorNombreCompleto = "No asignado";
+if ($resultMovilizador->num_rows > 0) {
+    $movilizadorInfo = $resultMovilizador->fetch_assoc();
+    $movilizadorNombreCompleto = $movilizadorInfo['Apellido'] . " " . $movilizadorInfo['Nombre'];
+}
+
 // Obtener el dirigente vinculado al movilizador
-$queryDirigente = "SELECT DirigenteDNI FROM Movilizadores WHERE DNI = '$dniMovilizador'";
-$resultDirigente = $conn->query($queryDirigente);
-$dirigenteDNI = $resultDirigente->fetch_assoc()['DirigenteDNI'];
+$queryDirigente = "SELECT DirigenteDNI FROM Movilizadores WHERE DNI = ?";
+$stmtDirigente = $conn->prepare($queryDirigente);
+$stmtDirigente->bind_param("s", $dniMovilizador);
+$stmtDirigente->execute();
+$resultDirigente = $stmtDirigente->get_result();
+$dirigenteDNI = $resultDirigente->num_rows > 0 ? $resultDirigente->fetch_assoc()['DirigenteDNI'] : null;
 
-// Obtener los datos del dirigente
-$queryDirigenteInfo = "SELECT Apellido, Nombre FROM Dirigentes WHERE DNI = '$dirigenteDNI'";
-$resultDirigenteInfo = $conn->query($queryDirigenteInfo);
-$dirigenteInfo = $resultDirigenteInfo->fetch_assoc();
-$dirigenteNombreCompleto = $dirigenteInfo['Apellido'] . " " . $dirigenteInfo['Nombre'];
+// Obtener el nombre del dirigente
+$dirigenteNombreCompleto = "No asignado";
+if ($dirigenteDNI) {
+    $queryDirigenteInfo = "SELECT Apellido, Nombre FROM Dirigentes WHERE DNI = ?";
+    $stmtDirigenteInfo = $conn->prepare($queryDirigenteInfo);
+    $stmtDirigenteInfo->bind_param("s", $dirigenteDNI);
+    $stmtDirigenteInfo->execute();
+    $resultDirigenteInfo = $stmtDirigenteInfo->get_result();
+    if ($resultDirigenteInfo->num_rows > 0) {
+        $dirigenteInfo = $resultDirigenteInfo->fetch_assoc();
+        $dirigenteNombreCompleto = $dirigenteInfo['Apellido'] . " " . $dirigenteInfo['Nombre'];
+    }
+}
 
-// Procesar la búsqueda y registro de votantes
+// Variables para la búsqueda y registro
+$votante = [];
+$error = "";
+$success = "";
+
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['buscar'])) {
     $dniVotante = $_POST['dni_votante'];
-    $queryVotante = "SELECT * FROM PADRON WHERE DNI = '$dniVotante'";
-    $resultVotante = $conn->query($queryVotante);
+
+    // Buscar el votante en PADRONES3
+    $queryVotante = "SELECT DNI, Apellido, Nombre, Direccion, Circuito FROM PADRONES3 WHERE DNI = ?";
+    $stmtVotante = $conn->prepare($queryVotante);
+    $stmtVotante->bind_param("s", $dniVotante);
+    $stmtVotante->execute();
+    $resultVotante = $stmtVotante->get_result();
 
     if ($resultVotante->num_rows > 0) {
         $votante = $resultVotante->fetch_assoc();
@@ -36,21 +68,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['buscar'])) {
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar'])) {
     $dniVotante = $_POST['dni_votante'];
-    $apellido = $_POST['apellido'];
-    $nombre = $_POST['nombre'];
-    $circuito = $_POST['circuito'];
-    $fechaHoraRegistro = date("Y-m-d H:i:s");
 
     // Verificar si el DNI ya está registrado en la tabla de votantes
-    $queryCheck = "SELECT * FROM Votantes WHERE DNI = '$dniVotante'";
-    $resultCheck = $conn->query($queryCheck);
+    $queryCheck = "SELECT * FROM Votantes WHERE DNI = ?";
+    $stmtCheck = $conn->prepare($queryCheck);
+    $stmtCheck->bind_param("s", $dniVotante);
+    $stmtCheck->execute();
+    $resultCheck = $stmtCheck->get_result();
 
     if ($resultCheck->num_rows == 0) {
-        // Insertar nuevo votante
-        $queryInsert = $conn->prepare("INSERT INTO Votantes (DNI, Apellido, Nombre, Circuito, FechaHoraRegistro, MovilizadorDNI, DirigenteApellidoNombre) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $queryInsert->bind_param("sssssss", $dniVotante, $apellido, $nombre, $circuito, $fechaHoraRegistro, $dniMovilizador, $dirigenteNombreCompleto);
+        $apellido = $_POST['apellido'];
+        $nombre = $_POST['nombre'];
+        $direccion = $_POST['direccion'];
+        $circuito = $_POST['circuito'];
+        $fechaHoraRegistro = date("Y-m-d H:i:s");
 
-        if ($queryInsert->execute()) {
+        // Insertar nuevo votante
+        $queryInsert = "INSERT INTO Votantes (DNI, Apellido, Nombre, Direccion, Circuito, FechaHoraRegistro, MovilizadorDNI, DirigenteApellidoNombre, DirigenteDNI) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        $stmtInsert = $conn->prepare($queryInsert);
+        $stmtInsert->bind_param("ssssssss", $dniVotante, $apellido, $nombre, $direccion, $circuito, $fechaHoraRegistro, $dniMovilizador, $dirigenteNombreCompleto, $dirigenteDNI);
+
+        if ($stmtInsert->execute()) {
             $success = "Votante registrado con éxito.";
         } else {
             $error = "Error: " . $conn->error;
@@ -61,8 +100,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar'])) {
 }
 
 // Obtener la lista de votantes registrados por el movilizador
-$queryVotantesRegistrados = "SELECT * FROM Votantes WHERE MovilizadorDNI = '$dniMovilizador'";
-$resultVotantesRegistrados = $conn->query($queryVotantesRegistrados);
+$queryVotantesRegistrados = "SELECT * FROM Votantes WHERE MovilizadorDNI = ?";
+$stmtVotantesRegistrados = $conn->prepare($queryVotantesRegistrados);
+$stmtVotantesRegistrados->bind_param("s", $dniMovilizador);
+$stmtVotantesRegistrados->execute();
+$resultVotantesRegistrados = $stmtVotantesRegistrados->get_result();
 ?>
 
 <!DOCTYPE html>
@@ -72,13 +114,10 @@ $resultVotantesRegistrados = $conn->query($queryVotantesRegistrados);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Movilizador</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <body>
     <header class="bg-primary text-white text-center p-3">
-        <h1>Movilizador Dashboard</h1>
+        <h1>Movilizador: <?= htmlspecialchars($movilizadorNombreCompleto) ?></h1>
         <a href="logout.php" class="btn btn-light">Cerrar sesión</a>
     </header>
 
@@ -93,71 +132,38 @@ $resultVotantesRegistrados = $conn->query($queryVotantesRegistrados);
             <button type="submit" name="buscar" class="btn btn-primary">Buscar</button>
         </form>
 
-        <?php if (isset($votante)): ?>
+        <?php if (!empty($votante)): ?>
             <form method="post">
-                <div class="form-group">
-                    <label for="dni">DNI:</label>
-                    <input type="text" class="form-control" id="dni" name="dni_votante" value="<?php echo $votante['DNI']; ?>" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="apellido">Apellido:</label>
-                    <input type="text" class="form-control" id="apellido" name="apellido" value="<?php echo $votante['Apellido']; ?>" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="nombre">Nombre:</label>
-                    <input type="text" class="form-control" id="nombre" name="nombre" value="<?php echo $votante['Nombre']; ?>" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="circuito">Circuito:</label>
-                    <input type="text" class="form-control" id="circuito" name="circuito" value="<?php echo $votante['Circuito']; ?>" readonly>
-                </div>
+                <?php foreach (['DNI', 'Apellido', 'Nombre', 'Direccion', 'Circuito'] as $campo): ?>
+                    <div class="form-group">
+                        <label for="<?= strtolower($campo) ?>"><?= ucfirst(strtolower($campo)) ?>:</label>
+                        <input type="text" class="form-control" id="<?= strtolower($campo) ?>" name="<?= strtolower($campo) ?>" 
+                               value="<?= htmlspecialchars($votante[$campo] ?? '') ?>" readonly>
+                    </div>
+                <?php endforeach; ?>
                 <button type="submit" name="registrar" class="btn btn-success">Registrar Votante</button>
             </form>
         <?php endif; ?>
 
-        <?php if (isset($error)): ?>
-            <div class="alert alert-danger mt-4" role="alert"><?php echo $error; ?></div>
+        <?php if ($error): ?>
+            <div class="alert alert-danger mt-4"><?= $error ?></div>
         <?php endif; ?>
 
-        <?php if (isset($success)): ?>
-            <div class="alert alert-success mt-4" role="alert"><?php echo $success; ?></div>
+        <?php if ($success): ?>
+            <div class="alert alert-success mt-4"><?= $success ?></div>
         <?php endif; ?>
 
         <h2 class="mt-5">Votantes Registrados</h2>
         <table class="table table-striped">
             <thead>
-                <tr>
-                    <th>#</th>
-                    <th>DNI</th>
-                    <th>Apellido</th>
-                    <th>Nombre</th>
-                    <th>Circuito</th>
-                </tr>
+                <tr><th>#</th><th>DNI</th><th>Apellido</th><th>Nombre</th><th>Dirección</th><th>Circuito</th></tr>
             </thead>
             <tbody>
-                <?php
-                if ($resultVotantesRegistrados->num_rows > 0) {
-                    $i = 1;
-                    while ($row = $resultVotantesRegistrados->fetch_assoc()) {
-                        echo "<tr>
-                                <td>{$i}</td>
-                                <td>{$row['DNI']}</td>
-                                <td>{$row['Apellido']}</td>
-                                <td>{$row['Nombre']}</td>
-                                <td>{$row['Circuito']}</td>
-                              </tr>";
-                        $i++;
-                    }
-                } else {
-                    echo "<tr><td colspan='5' class='text-center'>No hay votantes registrados</td></tr>";
-                }
-                ?>
+                <?php $i = 1; while ($row = $resultVotantesRegistrados->fetch_assoc()): ?>
+                    <tr><td><?= $i++ ?></td><td><?= $row['DNI'] ?></td><td><?= $row['Apellido'] ?></td><td><?= $row['Nombre'] ?></td><td><?= $row['Direccion'] ?></td><td><?= $row['Circuito'] ?></td></tr>
+                <?php endwhile; ?>
             </tbody>
         </table>
     </div>
-
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
